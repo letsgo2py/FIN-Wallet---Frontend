@@ -12,6 +12,7 @@ import Navbar from "./Navbar";
 function Dashboard() {
   const navigate = useNavigate();
   const [role, setRole] = useState("");
+  const [isPageLoading, setIsPageLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -67,8 +68,12 @@ function Dashboard() {
 
   const fetchTransactions = async (pageToFetch = currentPage) => {
     try {
+      setIsPageLoading(true);
       const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!token) {
+        setIsPageLoading(false);
+        return;
+      }
 
       const decoded = jwtDecode(token);
       setRole(decoded.role);
@@ -107,6 +112,8 @@ function Dashboard() {
       setTotalPages(data.totalPages || 1);
     } catch (error) {
       console.error("Error initializing dashboard:", error);
+    } finally {
+      setIsPageLoading(false);
     }
   };
 
@@ -315,71 +322,82 @@ function Dashboard() {
 
       <div className="dashboard-container">
 
-        <div className="add-container">
-          <div className="record-text">Records</div>
-          <div className="summary-div">
-            <div className="filter-bar">
-              <input
-                type="date"
-                className="filter-input"
-                value={filters.date}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, date: e.target.value }))
-                }
-              />
+        {role !== "VIEWER" && (
+          <div className="add-container">
+            <div className="record-text">Records</div>
+            <div className="summary-div">
+              <div className="filter-bar">
+                <input
+                  type="date"
+                  className="filter-input"
+                  value={filters.date}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, date: e.target.value }))
+                  }
+                />
 
-              <select
-                className="filter-select"
-                value={filters.category}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, category: e.target.value }))
-                }
-              >
-                <option value="">All Categories</option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
+                <select
+                  className="filter-select"
+                  value={filters.category}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, category: e.target.value }))
+                  }
+                >
+                  <option value="">All Categories</option>
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
 
-              <select
-                className="filter-select"
-                value={filters.type}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, type: e.target.value }))
-                }
-              >
-                <option value="">All Types</option>
-                <option value="INCOME">Income</option>
-                <option value="EXPENSE">Expense</option>
-              </select>
+                <select
+                  className="filter-select"
+                  value={filters.type}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, type: e.target.value }))
+                  }
+                >
+                  <option value="">All Types</option>
+                  <option value="INCOME">Income</option>
+                  <option value="EXPENSE">Expense</option>
+                </select>
 
-              <button
-                className="clear-filter-btn"
-                onClick={() =>
-                  setFilters({
-                    date: "",
-                    category: "",
-                    type: "",
-                  })
-                }
-              >
-                Clear
-              </button>
-            </div>
-            {(role === 'SUPER_ADMIN' || role === 'ADMIN' || role === 'ANALYST') && (
-              <button tton className="summary-btn" onClick={() => navigate("/summary")}>Summary</button>
-            )}
-            {(role === 'SUPER_ADMIN' || role === 'ADMIN') && (
-              <div className="add-btn" onClick={() => setShowForm(!showForm)}>
-                <FaPlus />
+                <button
+                  className="clear-filter-btn"
+                  onClick={() =>
+                    setFilters({
+                      date: "",
+                      category: "",
+                      type: "",
+                    })
+                  }
+                >
+                  Clear
+                </button>
               </div>
-            )}
+              {(role === "SUPER_ADMIN" || role === "ADMIN" || role === "ANALYST") && (
+                <button className="summary-btn" onClick={() => navigate("/summary")}>
+                  Summary
+                </button>
+              )}
+              {(role === "SUPER_ADMIN" || role === "ADMIN") && (
+                <div className="add-btn" onClick={() => setShowForm(!showForm)}>
+                  <FaPlus />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="records">
+          {isPageLoading ? (
+            <div className="dashboard-loading">
+              <div className="dashboard-loading-spinner" aria-hidden="true"></div>
+              <div className="dashboard-loading-text">Loading records...</div>
+            </div>
+          ) : (
+            <>
 
           {showForm && (
             <div className="inline-form-row">
@@ -506,6 +524,8 @@ function Dashboard() {
                 <FaChevronRight />
               </button>
             </div>
+          )}
+            </>
           )}
         </div>
 
