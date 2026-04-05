@@ -44,7 +44,7 @@ function Summary() {
         setIsLoading(true);
         const token = localStorage.getItem("token");
 
-        const res = await fetch("http://localhost:5000/api/transactions/summary", {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/transactions/summary`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

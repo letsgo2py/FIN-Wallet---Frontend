@@ -13,7 +13,7 @@ function ManageUsers() {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/api/users", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -39,7 +39,7 @@ function ManageUsers() {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/api/users/role", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/role`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

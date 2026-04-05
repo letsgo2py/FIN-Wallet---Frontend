@@ -89,7 +89,7 @@ function Dashboard() {
         searchParams.set("type", filters.type);
       }
 
-      const res = await fetch(`http://localhost:5000/api/transactions?${searchParams.toString()}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/transactions?${searchParams.toString()}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -136,7 +136,7 @@ function Dashboard() {
         date: new Date().toISOString(), 
       };
 
-      const res = await fetch("http://localhost:5000/api/transactions/create", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/transactions/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -183,7 +183,7 @@ function Dashboard() {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch(`http://localhost:5000/api/transactions/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/transactions/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -281,7 +281,7 @@ function Dashboard() {
         date: new Date(editForm.date).toISOString(),
       };
 
-      const res = await fetch(`http://localhost:5000/api/transactions/${editData.id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/transactions/${editData.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
