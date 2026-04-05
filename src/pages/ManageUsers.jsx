@@ -13,6 +13,7 @@ function ManageUsers() {
   const [users, setUsers] = useState([]);
   const [updatedRoles, setUpdatedRoles] = useState({});
   const [updatedStatuses, setUpdatedStatuses] = useState({});
+  const [applyingUserId, setApplyingUserId] = useState(null);
 
   const fetchUsers = async () => {
     try {
@@ -131,24 +132,30 @@ function ManageUsers() {
   };
 
   const handleApplyChanges = async (user) => {
+    setApplyingUserId(user.id);
+
     const selectedRole = updatedRoles[user.id] ?? user.role;
     const selectedStatus = updatedStatuses[user.id] ?? (user.isActive ? "active" : "inactive");
     const originalStatus = user.isActive ? "active" : "inactive";
 
-    let hasUpdated = false;
+    try {
+      let hasUpdated = false;
 
-    if (selectedRole !== user.role) {
-      await updateRole(user.id, selectedRole);
-      hasUpdated = true;
-    }
+      if (selectedRole !== user.role) {
+        await updateRole(user.id, selectedRole);
+        hasUpdated = true;
+      }
 
-    if (selectedStatus !== originalStatus) {
-      await updateStatus(user.id, selectedStatus === "active");
-      hasUpdated = true;
-    }
+      if (selectedStatus !== originalStatus) {
+        await updateStatus(user.id, selectedStatus === "active");
+        hasUpdated = true;
+      }
 
-    if (!hasUpdated) {
-      return;
+      if (!hasUpdated) {
+        return;
+      }
+    } finally {
+      setApplyingUserId(null);
     }
   };
 
@@ -202,10 +209,10 @@ function ManageUsers() {
                 </select>
                 <button
                   className="apply-btn"
-                  disabled={!isChanged}
+                  disabled={!isChanged || applyingUserId === user.id}
                   onClick={() => handleApplyChanges(user)}
                 >
-                  Apply
+                  {applyingUserId === user.id ? <div className="apply-spinner"></div> : "Apply"}
                 </button>
               </div>
             )
