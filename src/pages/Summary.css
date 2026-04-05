@@ -1,0 +1,184 @@
+.summary-page {
+  width: 90%;
+  margin: 0 auto;
+  min-height: calc(100vh - 100px);
+  padding: 28px 20px 40px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%);
+}
+
+.summary-header {
+  margin-bottom: 24px;
+}
+
+.summary-title {
+  margin: 0;
+  font-size: 2.4rem;
+  color: #111827;
+}
+
+.summary-subtitle {
+  margin-top: 8px;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.summary-loading {
+  padding: 32px 0;
+  font-size: 1.1rem;
+  color: #4b5563;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.summary-card {
+  padding: 22px;
+  border-radius: 22px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.income-card {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+}
+
+.expense-card {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+}
+
+.balance-card {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+.card-label {
+  font-size: 0.95rem;
+  color: #374151;
+  margin-bottom: 10px;
+}
+
+.card-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.summary-panel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+}
+
+.panel-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 16px;
+}
+
+.summary-empty {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.category-list,
+.activity-list,
+.trend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.category-row,
+.activity-row,
+.trend-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f9fafb;
+}
+
+.category-name,
+.activity-category,
+.trend-period {
+  font-weight: 700;
+  color: #111827;
+}
+
+.activity-date {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.category-values,
+.trend-values {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.trend-income {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.trend-expense {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.category-total {
+  color: #1f2937;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .summary-cards,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .summary-page {
+    width: 94%;
+    padding: 20px 12px 28px;
+  }
+
+  .summary-title {
+    font-size: 2rem;
+  }
+
+  .card-value {
+    font-size: 1.6rem;
+  }
+
+  .category-row,
+  .activity-row,
+  .trend-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .category-values,
+  .trend-values {
+    justify-content: flex-start;
+  }
+}
