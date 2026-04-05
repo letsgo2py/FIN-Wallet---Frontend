@@ -18,6 +18,7 @@ function Dashboard() {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditLoading, setIsEditLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
 
   const [editData, setEditData] = useState(null);
@@ -188,6 +189,7 @@ function Dashboard() {
 
   const handleDeleteTransaction = async (id) => {
     try {
+      setDeletingId(id);
       const token = localStorage.getItem("token");
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/transactions/${id}`, {
@@ -219,6 +221,8 @@ function Dashboard() {
 
     } catch (error) {
       console.error("Error deleting transaction:", error);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -493,9 +497,10 @@ function Dashboard() {
                     type="button"
                     className="delete-btn"
                     onClick={() => handleDeleteTransaction(t.id)}
+                    disabled={deletingId === t.id}
                     aria-label={`Delete ${t.category} transaction`}
                   >
-                    <FaTrash />
+                    {deletingId === t.id ? <div className="delete-spinner"></div> : <FaTrash />}
                   </button>
                 </div>
               )}
