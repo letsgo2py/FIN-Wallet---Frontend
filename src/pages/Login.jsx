@@ -7,6 +7,7 @@ import Toast from "./Toast";
 export default function Login() {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isValidName, setIsValidName] = useState(true);
   const [isValidEmail, setIsValidEmail] = useState(true);
   const [isMatchPassword, setIsMatchPassword] = useState(true);
@@ -87,6 +88,7 @@ export default function Login() {
     setIsMatchPassword(true);
 
     try {
+      setIsSubmitting(true);
       const url = isLogin
         ? `${import.meta.env.VITE_API_URL}/api/auth/login`
         : `${import.meta.env.VITE_API_URL}/api/auth/register`;
@@ -128,6 +130,8 @@ export default function Login() {
     } catch (err) {
       console.error(err);
       showToast("Server error", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -178,8 +182,8 @@ export default function Login() {
               <p className="error-text">The password does not match.</p>
             )}
 
-            <button type="submit" className="submit">
-              {isLogin ? "Login" : "Register"}
+            <button type="submit" className="submit" disabled={isSubmitting}>
+              {isSubmitting ? <div className="auth-spinner"></div> : isLogin ? "Login" : "Register"}
             </button>
           </form>
 

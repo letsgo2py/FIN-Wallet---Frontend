@@ -322,9 +322,9 @@ function Dashboard() {
 
       <div className="dashboard-container">
 
-        {role !== "VIEWER" && (
-          <div className="add-container">
-            <div className="record-text">Records</div>
+        <div className="add-container">
+          <div className="record-text">Records</div>
+          {role !== "VIEWER" && (
             <div className="summary-div">
               <div className="filter-bar">
                 <input
@@ -387,8 +387,8 @@ function Dashboard() {
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="records">
           {isPageLoading ? (

@@ -1,9 +1,11 @@
 /* Full page center */
 .container {
-  height: 100vh;
+  min-height: calc(100vh - 100px);
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 24px 16px;
+  box-sizing: border-box;
 }
 
 /* Card */
@@ -59,10 +61,28 @@
   border-radius: 6px;
   cursor: pointer;
   font-weight: bold;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .submit:hover {
   opacity: 0.9;
+}
+
+.submit:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+.auth-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ffffff;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: auth-spin 0.6s linear infinite;
 }
 
 /* Login Footer */
@@ -79,4 +99,10 @@
 .error-text{
   font-size: 12px;
   color: red;
+}
+
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

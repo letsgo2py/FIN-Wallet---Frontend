@@ -4,10 +4,15 @@ import "./ManageUsers.css";
 import Navbar from "./Navbar";
 
 const ROLE_OPTIONS = ["VIEWER", "ANALYST", "ADMIN"];
+const STATUS_OPTIONS = [
+  { label: "Active", value: "active" },
+  { label: "Inactive", value: "inactive" },
+];
 
 function ManageUsers() {
   const [users, setUsers] = useState([]);
   const [updatedRoles, setUpdatedRoles] = useState({});
+  const [updatedStatuses, setUpdatedStatuses] = useState({});
 
   const fetchUsers = async () => {
     try {
@@ -29,6 +34,7 @@ function ManageUsers() {
 
       setUsers(data);
       setUpdatedRoles({});
+      setUpdatedStatuses({});
     } catch (err) {
       console.error(err);
       alert("Server error");
@@ -58,12 +64,41 @@ function ManageUsers() {
         return;
       }
 
-      // refresh list after update
       fetchUsers();
 
     } catch (err) {
       console.error(err);
       alert("Error updating role");
+    }
+  };
+
+  const updateStatus = async (userId, isActive) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId,
+          isActive,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Failed to update status");
+        return;
+      }
+
+      fetchUsers();
+    } catch (err) {
+      console.error(err);
+      alert("Error updating status");
     }
   };
 
@@ -88,6 +123,35 @@ function ManageUsers() {
     }));
   };
 
+  const handleStatusChange = (userId, newStatus) => {
+    setUpdatedStatuses((prev) => ({
+      ...prev,
+      [userId]: newStatus,
+    }));
+  };
+
+  const handleApplyChanges = async (user) => {
+    const selectedRole = updatedRoles[user.id] ?? user.role;
+    const selectedStatus = updatedStatuses[user.id] ?? (user.isActive ? "active" : "inactive");
+    const originalStatus = user.isActive ? "active" : "inactive";
+
+    let hasUpdated = false;
+
+    if (selectedRole !== user.role) {
+      await updateRole(user.id, selectedRole);
+      hasUpdated = true;
+    }
+
+    if (selectedStatus !== originalStatus) {
+      await updateStatus(user.id, selectedStatus === "active");
+      hasUpdated = true;
+    }
+
+    if (!hasUpdated) {
+      return;
+    }
+  };
+
   return (
     <div>
       <Navbar />
@@ -99,12 +163,16 @@ function ManageUsers() {
             <span>Name</span>
             <span>Email</span>
             <span>Role</span>
+            <span>Status</span>
             <span>Action</span>
           </div>
 
           {users.map((user) => {
             const selectedRole = updatedRoles[user.id] ?? user.role;
-            const isRoleChanged = selectedRole !== user.role;
+            const selectedStatus = updatedStatuses[user.id] ?? (user.isActive ? "active" : "inactive");
+            const isChanged =
+              selectedRole !== user.role ||
+              selectedStatus !== (user.isActive ? "active" : "inactive");
 
             return (
               <div key={user.id} className="user-row">
@@ -121,10 +189,21 @@ function ManageUsers() {
                     </option>
                   ))}
                 </select>
+
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => handleStatusChange(user.id, e.target.value)}
+                >
+                  {STATUS_OPTIONS.map((statusOption) => (
+                    <option key={statusOption.value} value={statusOption.value}>
+                      {statusOption.label}
+                    </option>
+                  ))}
+                </select>
                 <button
                   className="apply-btn"
-                  disabled={!isRoleChanged}
-                  onClick={() => updateRole(user.id, selectedRole)}
+                  disabled={!isChanged}
+                  onClick={() => handleApplyChanges(user)}
                 >
                   Apply
                 </button>
