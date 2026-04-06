@@ -58,7 +58,6 @@ function ManageUsers() {
       });
 
       const data = await res.json();
-      console.log("DATA for all users: ", data);
 
       if (!res.ok) {
         showToast(data.message || "Failed to fetch users", "error");

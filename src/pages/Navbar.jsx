@@ -51,7 +51,6 @@ function Navbar({ showAuthControls = true }) {
       email: auth.email,
     });
     setIsAuthenticated(true);
-    console.log("is user authenticated:", true);
   }, []);
 
   const handleLogout = () => {
