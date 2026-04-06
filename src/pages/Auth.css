@@ -4,8 +4,9 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 24px 16px;
+  padding: 120px 16px 24px;
   box-sizing: border-box;
+  position: relative;
 }
 
 /* Card */
@@ -104,5 +105,53 @@
 @keyframes auth-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+.testing-info{
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 32px));
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid #bfd4ff;
+  background: linear-gradient(135deg, #eef4ff 0%, #dfeaff 100%);
+  color: #19325c;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  box-shadow: 0 10px 24px rgba(25, 50, 92, 0.12);
+}
+
+.testing-info-header{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.testing-info-icon{
+  color: #2d6cdf;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.testing-info p{
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding-top: 132px;
+  }
+
+  .testing-info{
+    top: 16px;
+    padding: 12px 14px;
   }
 }

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./Auth.css";
 import Navbar from "./Navbar";
 import Toast from "./Toast";
+import { FaInfoCircle } from "react-icons/fa";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -138,6 +139,15 @@ export default function Login() {
   return (
     <>
       <Toast message={toast.message} type={toast.type} show={toast.show} />
+      <div className="testing-info">
+        <div className="testing-info-header">
+          <FaInfoCircle className="testing-info-icon" />
+          <span>Test Credentials</span>
+        </div>
+        <p>For testing, use the following `SUPER_ADMIN` account:</p>
+        <p><strong>Email:</strong> admin@finance.com</p>
+        <p><strong>Password:</strong> admin</p>
+      </div>
       <Navbar showAuthControls={false} />
       <div className="container">
         <div className="card">
