@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
-import { jwtDecode } from "jwt-decode";
 import { FaPlus, FaTrash, FaEdit, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import Toast from "./Toast";
+import { decodeStoredToken } from "../utils/auth";
+import { formatDisplayDate } from "../utils/date";
 
 const CATEGORIES = ["Food", "Transport", "Shopping", "Salary", "Bills", "Health", "Entertainment", "Other"];
 
@@ -12,15 +13,16 @@ import Navbar from "./Navbar";
 function Dashboard() {
   const navigate = useNavigate();
   const [role, setRole] = useState("");
-  const [isPageLoading, setIsPageLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [transactions, setTransactions] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  const [isPageLoading, setIsPageLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditLoading, setIsEditLoading] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
 
+  const [deletingId, setDeletingId] = useState(null);
   const [editData, setEditData] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -51,6 +53,8 @@ function Dashboard() {
     type: "error",
   });
 
+  const today = new Date().toISOString().split("T")[0];
+
   const showToast = (message, type = "error") => {
     setToast({
       show: true,
@@ -70,14 +74,15 @@ function Dashboard() {
   const fetchTransactions = async (pageToFetch = currentPage) => {
     try {
       setIsPageLoading(true);
-      const token = localStorage.getItem("token");
-      if (!token) {
+      const auth = decodeStoredToken();
+
+      if (!auth) {
         setIsPageLoading(false);
         return;
       }
 
-      const decoded = jwtDecode(token);
-      setRole(decoded.role);
+      const token = auth.token;
+      setRole(auth.role);
 
       const searchParams = new URLSearchParams({
         page: String(pageToFetch),
@@ -122,19 +127,36 @@ function Dashboard() {
     fetchTransactions(currentPage);
   }, [currentPage]);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  useEffect(() => {
+    if (currentPage === 1) {
+      fetchTransactions(1);
+      return;
+    }
+
+    setCurrentPage(1);
+  }, [filters]);
 
   const handleAddTransaction = async () => {
     if (!form.amount || isNaN(form.amount)) {
-      showToast("Enter the positive Amount", "error");
+      showToast("Enter the Amount", "error");
+      return;
+    }
+
+    if (form.amount <= 0) {
+      showToast("Enter the Positive Amount", "error");
       return;
     }
 
     try {
       setIsLoading(true);
-      const token = localStorage.getItem("token");
+      const auth = decodeStoredToken();
+
+      if (!auth) {
+        showToast("You are not logged in", "error");
+        return;
+      }
+
+      const token = auth.token;
 
       const payload = {
         amount: parseFloat(form.amount),
@@ -162,8 +184,6 @@ function Dashboard() {
         return;
       }
 
-      const newTransaction = data.transaction;
-
       setForm({
         amount: "",
         category: "Food",
@@ -182,107 +202,40 @@ function Dashboard() {
     }
   };
 
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
   const handleCancel = () => {
     setForm({ amount: "", category: "Food", type: "EXPENSE", note: "" });
     setShowForm(false);
   };
 
-  const handleDeleteTransaction = async (id) => {
-    try {
-      setDeletingId(id);
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/transactions/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        showToast(data.message || "Something went wrong", "error");
-        console.error(data.message || "Failed to delete transaction");
-        return;
-      }
-
-      const nextPage = transactions.length === 1 && currentPage > 1
-        ? currentPage - 1
-        : currentPage;
-
-      if (nextPage !== currentPage) {
-        setCurrentPage(nextPage);
-      } else {
-        fetchTransactions(nextPage);
-      }
-
-      showToast(data.message || "Transaction deleted successfully", "success");
-
-    } catch (error) {
-      console.error("Error deleting transaction:", error);
-    } finally {
-      setDeletingId(null);
+  const handleUpdateTransaction = async () => {
+    if (!editData?.id) {
+      showToast("Invalid record data", "error");
+      return;
     }
-  };
-
-  const handleEditChange = (e) => {
-    setEditForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const formatTransactionDate = (dateValue) => {
-    const parsedDate = new Date(dateValue);
-
-    if (Number.isNaN(parsedDate.getTime())) {
-      return dateValue;
-    }
-
-    return parsedDate.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  useEffect(() => {
-    if (currentPage === 1) {
-      fetchTransactions(1);
+    if (!editForm.amount || isNaN(editForm.amount)) {
+      showToast("Enter the valid Amount", "error");
       return;
     }
 
-    setCurrentPage(1);
-  }, [filters]);
-
-  const handleEditTransaction = (transaction) => {
-    setEditData(transaction);
-    setEditForm({
-      amount: transaction.amount,
-      category: transaction.category,
-      type: transaction.type,
-      note: transaction.notes || transaction.note || "",
-      date: new Date(transaction.date).toISOString().split("T")[0],
-    });
-    setShowEditModal(true);
-  };
-
-  const handleCloseEditModal = () => {
-    setShowEditModal(false);
-    setEditData(null);
-    setEditForm({
-      amount: "",
-      category: "Food",
-      type: "EXPENSE",
-      note: "",
-      date: "",
-    });
-  };
-
-  const handleUpdateTransaction = async () => {
-    if (!editData?.id || !editForm.amount || isNaN(editForm.amount)) return;
+    if(editForm.amount <= 0){
+      showToast("The Amount must be a positive number", "error");
+      return;
+    }
 
     try {
       setIsEditLoading(true);
-      const token = localStorage.getItem("token");
+      const auth = decodeStoredToken();
+
+      if (!auth) {
+        showToast("You are not logged in", "error");
+        return;
+      }
+
+      const token = auth.token;
 
       const payload = {
         amount: parseFloat(editForm.amount),
@@ -319,6 +272,80 @@ function Dashboard() {
     }
   };
 
+  const handleEditTransaction = (transaction) => {
+    setEditData(transaction);
+    setEditForm({
+      amount: transaction.amount,
+      category: transaction.category,
+      type: transaction.type,
+      note: transaction.notes || transaction.note || "",
+      date: new Date(transaction.date).toISOString().split("T")[0],
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditChange = (e) => {
+    setEditForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditData(null);
+    setEditForm({
+      amount: "",
+      category: "Food",
+      type: "EXPENSE",
+      note: "",
+      date: "",
+    });
+  };
+
+  const handleDeleteTransaction = async (id) => {
+    try {
+      setDeletingId(id);
+      const auth = decodeStoredToken();
+
+      if (!auth) {
+        showToast("You are not logged in", "error");
+        return;
+      }
+
+      const token = auth.token;
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/transactions/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showToast(data.message || "Something went wrong", "error");
+        console.error(data.message || "Failed to delete transaction");
+        return;
+      }
+
+      const nextPage = transactions.length === 1 && currentPage > 1
+        ? currentPage - 1
+        : currentPage;
+
+      if (nextPage !== currentPage) {
+        setCurrentPage(nextPage);
+      } else {
+        fetchTransactions(nextPage);
+      }
+
+      showToast(data.message || "Transaction deleted successfully", "success");
+
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div>
       <Toast message={toast.message} type={toast.type} show={toast.show} />
@@ -335,6 +362,7 @@ function Dashboard() {
                   type="date"
                   className="filter-input"
                   value={filters.date}
+                  max={today}
                   onChange={(e) =>
                     setFilters((prev) => ({ ...prev, date: e.target.value }))
                   }
@@ -403,133 +431,133 @@ function Dashboard() {
           ) : (
             <>
 
-          {showForm && (
-            <div className="inline-form-row">
-              <input
-                className="form-input"
-                type="number"
-                name="amount"
-                placeholder="Amount"
-                value={form.amount}
-                onChange={handleChange}
-              />
+            {showForm && (
+              <div className="inline-form-row">
+                <input
+                  className="form-input"
+                  type="number"
+                  name="amount"
+                  placeholder="Amount"
+                  value={form.amount}
+                  onChange={handleChange}
+                />
 
-              <select className="form-select" name="category" value={form.category} onChange={handleChange}>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
+                <select className="form-select" name="category" value={form.category} onChange={handleChange}>
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
 
-              <div className="type-toggle">
-                <button
-                  className={`type-btn ${form.type === "INCOME" ? "active-income" : ""}`}
-                  onClick={() => setForm({ ...form, type: "INCOME" })}
-                >
-                  Income
-                </button>
-                <button
-                  className={`type-btn ${form.type === "EXPENSE" ? "active-expense" : ""}`}
-                  onClick={() => setForm({ ...form, type: "EXPENSE" })}
-                >
-                  Expense
-                </button>
-              </div>
-
-              <input
-                className="form-input note-input"
-                type="text"
-                name="note"
-                placeholder="Note (optional)"
-                value={form.note}
-                onChange={handleChange}
-              />
-
-              <button 
-                className="confirm-btn" 
-                onClick={handleAddTransaction}
-                disabled={isLoading}
-              >
-                {isLoading ? <div className="spinner"></div> : "Save"}
-              </button>
-              <button 
-                className="cancel-btn" 
-                onClick={handleCancel}
-                disabled={isLoading}
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-
-          {transactions.length === 0 && !showForm && (
-            <div className="empty-state">
-              <img src="/no-data.png" alt="No records" className="empty-state-image" />
-              <div className="empty-state-overlay">NO Records</div>
-            </div>
-          )}
-
-          {transactions.map((t) => (
-            <div key={t.id} className="transaction-row">
-              <div className="transaction-cell t-amount">
-                {t.type === "INCOME" ? "+" : "-"}{"\u20B9"}{t.amount.toFixed(2)}
-              </div>
-              <div className="transaction-cell">
-                <div className={`t-badge ${t.type}`}>
-                  {t.type === "INCOME" ? "INCOME" : "EXPENSE"}
-                </div>
-              </div>
-              <div className="transaction-cell t-category">{t.category}</div>
-              <div className="transaction-cell t-date">{formatTransactionDate(t.date)}</div>
-              <div className="transaction-cell t-note">{t.notes || t.note || "No note added"}</div>
-
-              {(role === "SUPER_ADMIN" || role === "ADMIN") && (
-                <div className="transaction-actions">
+                <div className="type-toggle">
                   <button
-                    type="button"
-                    className="edit-btn"
-                    onClick={() => handleEditTransaction(t)}
-                    aria-label={`Edit ${t.category} transaction`}
+                    className={`type-btn ${form.type === "INCOME" ? "active-income" : ""}`}
+                    onClick={() => setForm({ ...form, type: "INCOME" })}
                   >
-                    <FaEdit size={20}/>
+                    Income
                   </button>
-
                   <button
-                    type="button"
-                    className="delete-btn"
-                    onClick={() => handleDeleteTransaction(t.id)}
-                    disabled={deletingId === t.id}
-                    aria-label={`Delete ${t.category} transaction`}
+                    className={`type-btn ${form.type === "EXPENSE" ? "active-expense" : ""}`}
+                    onClick={() => setForm({ ...form, type: "EXPENSE" })}
                   >
-                    {deletingId === t.id ? <div className="delete-spinner"></div> : <FaTrash />}
+                    Expense
                   </button>
                 </div>
-              )}
-            </div>
-          ))}
 
-          {transactions.length > 0 && (
-            <div className="page-btns">
-              <button
-                type="button"
-                className="prev-btn page-btn"
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-              >
-                <FaChevronLeft />
-              </button>
-              <div className="page-detail">
-                Page {currentPage} of {totalPages}
+                <input
+                  className="form-input note-input"
+                  type="text"
+                  name="note"
+                  placeholder="Note (optional)"
+                  value={form.note}
+                  onChange={handleChange}
+                />
+
+                <button 
+                  className="confirm-btn" 
+                  onClick={handleAddTransaction}
+                  disabled={isLoading}
+                >
+                  {isLoading ? <div className="spinner"></div> : "Save"}
+                </button>
+                <button 
+                  className="cancel-btn" 
+                  onClick={handleCancel}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </button>
               </div>
-              <button
-                type="button"
-                className="next-btn page-btn"
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-              >
-                <FaChevronRight />
-              </button>
-            </div>
-          )}
+            )}
+
+            {transactions.length === 0 && !showForm && (
+              <div className="empty-state">
+                <img src="/no-data.png" alt="No records" className="empty-state-image" />
+                <div className="empty-state-overlay">NO Records</div>
+              </div>
+            )}
+
+            {transactions.map((t) => (
+              <div key={t.id} className="transaction-row">
+                <div className="transaction-cell t-amount">
+                  {t.type === "INCOME" ? "+" : "-"}{"\u20B9"}{t.amount.toFixed(2)}
+                </div>
+                <div className="transaction-cell">
+                  <div className={`t-badge ${t.type}`}>
+                    {t.type === "INCOME" ? "INCOME" : "EXPENSE"}
+                  </div>
+                </div>
+                <div className="transaction-cell t-category">{t.category}</div>
+                <div className="transaction-cell t-date">{formatDisplayDate(t.date)}</div>
+                <div className="transaction-cell t-note">{t.notes || t.note || "No note added"}</div>
+
+                {(role === "SUPER_ADMIN" || role === "ADMIN") && (
+                  <div className="transaction-actions">
+                    <button
+                      type="button"
+                      className="edit-btn"
+                      onClick={() => handleEditTransaction(t)}
+                      aria-label={`Edit ${t.category} transaction`}
+                    >
+                      <FaEdit size={20}/>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="delete-btn"
+                      onClick={() => handleDeleteTransaction(t.id)}
+                      disabled={deletingId === t.id}
+                      aria-label={`Delete ${t.category} transaction`}
+                    >
+                      {deletingId === t.id ? <div className="delete-spinner"></div> : <FaTrash />}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {transactions.length > 0 && (
+              <div className="page-btns">
+                <button
+                  type="button"
+                  className="prev-btn page-btn"
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  <FaChevronLeft />
+                </button>
+                <div className="page-detail">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <button
+                  type="button"
+                  className="next-btn page-btn"
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  <FaChevronRight />
+                </button>
+              </div>
+            )}
             </>
           )}
         </div>
@@ -571,6 +599,7 @@ function Dashboard() {
                   type="date"
                   name="date"
                   value={editForm.date}
+                  max={today}
                   onChange={handleEditChange}
                 />
 

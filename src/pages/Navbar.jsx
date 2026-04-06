@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { FaUserCircle } from "react-icons/fa";
-import { jwtDecode } from "jwt-decode";
 import Toast from "./Toast";
 
 import { useNavigate, useLocation } from "react-router-dom";
+import { decodeStoredToken } from "../utils/auth";
 
 
 import './Navbar.css';
@@ -36,31 +36,22 @@ function Navbar({ showAuthControls = true }) {
   const location = useLocation();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const auth = decodeStoredToken();
 
-    if (!token) {
+    if (!auth) {
       setRole("");
       setIsAuthenticated(false);
+      setUser({ name: "", email: "" });
       return;
     }
 
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setRole(decoded.role || "");
-        setUser({
-          name: decoded.name || "User",
-          email: decoded.email || "",
-        });
-        setIsAuthenticated(true);
-        console.log("is user authenticated:", true);
-      } catch (error) {
-        console.error("Invalid token found in storage", error);
-        setRole("");
-        setIsAuthenticated(false);
-        console.log("is user authenticated:", false);
-      }
-    }
+    setRole(auth.role);
+    setUser({
+      name: auth.name,
+      email: auth.email,
+    });
+    setIsAuthenticated(true);
+    console.log("is user authenticated:", true);
   }, []);
 
   const handleLogout = () => {
@@ -166,7 +157,14 @@ function Navbar({ showAuthControls = true }) {
         password: "",
       });
 
-      const token = localStorage.getItem("token");
+      const auth = decodeStoredToken();
+
+      if (!auth) {
+        showToast("You are not logged in", "error");
+        return;
+      }
+
+      const token = auth.token;
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/create`, {
         method: "POST",
         headers: {

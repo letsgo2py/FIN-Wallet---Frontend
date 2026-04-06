@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import Navbar from "./Navbar";
 import Toast from "./Toast";
 import "./Summary.css";
+import { decodeStoredToken } from "../utils/auth";
+import { formatDisplayDate } from "../utils/date";
 
 function Summary() {
   const [summary, setSummary] = useState({
@@ -42,7 +44,14 @@ function Summary() {
     const fetchSummary = async () => {
       try {
         setIsLoading(true);
-        const token = localStorage.getItem("token");
+        const auth = decodeStoredToken();
+
+        if (!auth) {
+          showToast("You are not logged in", "error");
+          return;
+        }
+
+        const token = auth.token;
 
         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/transactions/summary`, {
           headers: {
@@ -75,20 +84,6 @@ function Summary() {
       currency: "INR",
       maximumFractionDigits: 2,
     }).format(value || 0);
-
-  const formatDate = (value) => {
-    const parsedDate = new Date(value);
-
-    if (Number.isNaN(parsedDate.getTime())) {
-      return value;
-    }
-
-    return parsedDate.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
 
   const renderTrendItems = (items, emptyText) => {
     if (!items.length) {
@@ -185,7 +180,7 @@ function Summary() {
                       <div key={item.id} className="activity-row">
                         <div>
                           <div className="activity-category">{item.category}</div>
-                          <div className="activity-date">{formatDate(item.date)}</div>
+                          <div className="activity-date">{formatDisplayDate(item.date)}</div>
                         </div>
                         <div className={item.type === "INCOME" ? "trend-income" : "trend-expense"}>
                           {item.type === "INCOME" ? "+" : "-"} {formatCurrency(item.amount)}

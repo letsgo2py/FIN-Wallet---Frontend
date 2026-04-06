@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import "./ManageUsers.css";
 
 import Navbar from "./Navbar";
+import Toast from "./Toast";
+import { decodeStoredToken } from "../utils/auth";
 
 const ROLE_OPTIONS = ["VIEWER", "ANALYST", "ADMIN"];
 const STATUS_OPTIONS = [
@@ -14,10 +16,40 @@ function ManageUsers() {
   const [updatedRoles, setUpdatedRoles] = useState({});
   const [updatedStatuses, setUpdatedStatuses] = useState({});
   const [applyingUserId, setApplyingUserId] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    type: "error",
+  });
+
+  const showToast = (message, type = "error") => {
+    setToast({
+      show: true,
+      message,
+      type,
+    });
+
+    setTimeout(() => {
+      setToast({
+        show: false,
+        message: "",
+        type: "error",
+      });
+    }, 4000);
+  };
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem("token");
+      setIsLoading(true);
+      const auth = decodeStoredToken();
+
+      if (!auth) {
+        showToast("You are not logged in", "error");
+        return;
+      }
+
+      const token = auth.token;
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
         headers: {
@@ -29,7 +61,7 @@ function ManageUsers() {
       console.log("DATA for all users: ", data);
 
       if (!res.ok) {
-        alert(data.msg || "Failed to fetch users");
+        showToast(data.message || "Failed to fetch users", "error");
         return;
       }
 
@@ -38,13 +70,22 @@ function ManageUsers() {
       setUpdatedStatuses({});
     } catch (err) {
       console.error(err);
-      alert("Server error");
+      showToast("Server error", "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const updateRole = async (userId, newRole) => {
     try {
-      const token = localStorage.getItem("token");
+      const auth = decodeStoredToken();
+
+      if (!auth) {
+        showToast("You are not logged in", "error");
+        return;
+      }
+
+      const token = auth.token;
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/role`, {
         method: "PUT",
@@ -61,21 +102,28 @@ function ManageUsers() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.msg || "Failed to update role");
+        showToast(data.message || "Failed to update role", "error");
         return;
       }
 
+      showToast(data.message || "Role updated successfully", "success");
       fetchUsers();
-
     } catch (err) {
       console.error(err);
-      alert("Error updating role");
+      showToast("Error updating role", "error");
     }
   };
 
   const updateStatus = async (userId, isActive) => {
     try {
-      const token = localStorage.getItem("token");
+      const auth = decodeStoredToken();
+
+      if (!auth) {
+        showToast("You are not logged in", "error");
+        return;
+      }
+
+      const token = auth.token;
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/status`, {
         method: "PUT",
@@ -92,14 +140,15 @@ function ManageUsers() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.message || "Failed to update status");
+        showToast(data.message || "Failed to update status", "error");
         return;
       }
 
+      showToast(data.message || "Status updated successfully", "success");
       fetchUsers();
     } catch (err) {
       console.error(err);
-      alert("Error updating status");
+      showToast("Error updating status", "error");
     }
   };
 
@@ -161,62 +210,72 @@ function ManageUsers() {
 
   return (
     <div>
+      <Toast message={toast.message} type={toast.type} show={toast.show} />
       <Navbar />
       <div className="manage-users-container">
         <h2>User Management</h2>
 
         <div className="user-table">
-          <div className="user-header">
-            <span>Name</span>
-            <span>Email</span>
-            <span>Role</span>
-            <span>Status</span>
-            <span>Action</span>
-          </div>
-
-          {users.map((user) => {
-            const selectedRole = updatedRoles[user.id] ?? user.role;
-            const selectedStatus = updatedStatuses[user.id] ?? (user.isActive ? "active" : "inactive");
-            const isChanged =
-              selectedRole !== user.role ||
-              selectedStatus !== (user.isActive ? "active" : "inactive");
-
-            return (
-              <div key={user.id} className="user-row">
-                <span>{user.name}</span>
-                <span>{user.email}</span>
-
-                <select
-                  value={selectedRole}
-                  onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                >
-                  {ROLE_OPTIONS.map((roleOption) => (
-                    <option key={roleOption} value={roleOption}>
-                      {user.role === roleOption ? `✓ ${roleOption}` : roleOption}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => handleStatusChange(user.id, e.target.value)}
-                >
-                  {STATUS_OPTIONS.map((statusOption) => (
-                    <option key={statusOption.value} value={statusOption.value}>
-                      {statusOption.label}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  className="apply-btn"
-                  disabled={!isChanged || applyingUserId === user.id}
-                  onClick={() => handleApplyChanges(user)}
-                >
-                  {applyingUserId === user.id ? <div className="apply-spinner"></div> : "Apply"}
-                </button>
+          {isLoading ? (
+            <div className="manage-users-loading">
+              <div className="manage-users-spinner" aria-hidden="true"></div>
+              <div className="manage-users-loading-text">Loading users...</div>
+            </div>
+          ) : (
+            <>
+              <div className="user-header">
+                <span>Name</span>
+                <span>Email</span>
+                <span>Role</span>
+                <span>Status</span>
+                <span>Action</span>
               </div>
-            )
-          })}
+
+              {users.map((user) => {
+                const selectedRole = updatedRoles[user.id] ?? user.role;
+                const selectedStatus = updatedStatuses[user.id] ?? (user.isActive ? "active" : "inactive");
+                const isChanged =
+                  selectedRole !== user.role ||
+                  selectedStatus !== (user.isActive ? "active" : "inactive");
+
+                return (
+                  <div key={user.id} className="user-row">
+                    <span>{user.name}</span>
+                    <span>{user.email}</span>
+
+                    <select
+                      value={selectedRole}
+                      onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                    >
+                      {ROLE_OPTIONS.map((roleOption) => (
+                        <option key={roleOption} value={roleOption}>
+                          {user.role === roleOption ? `* ${roleOption}` : roleOption}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) => handleStatusChange(user.id, e.target.value)}
+                    >
+                      {STATUS_OPTIONS.map((statusOption) => (
+                        <option key={statusOption.value} value={statusOption.value}>
+                          {statusOption.label}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      className="apply-btn"
+                      disabled={!isChanged || applyingUserId === user.id}
+                      onClick={() => handleApplyChanges(user)}
+                    >
+                      {applyingUserId === user.id ? <div className="apply-spinner"></div> : "Apply"}
+                    </button>
+                  </div>
+                );
+              })}
+            </>
+          )}
         </div>
       </div>
     </div>

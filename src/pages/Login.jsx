@@ -115,7 +115,7 @@ export default function Login() {
       const data = await res.json();
 
       if (!res.ok) {
-        showToast(data.msg || "Something went wrong", "error");
+        showToast(data.message || "Something went wrong", "error");
         return;
       }
 
